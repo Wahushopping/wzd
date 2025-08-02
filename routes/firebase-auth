@@ -1,0 +1,41 @@
+const express = require("express");
+const router = express.Router();
+const admin = require("../firebase"); // your firebase.js
+const User = require("../models/User"); // your MongoDB User model
+const jwt = require("jsonwebtoken");
+
+router.post("/firebase-auth", async (req, res) => {
+  const { token } = req.body;
+
+  try {
+    // Verify Firebase token
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    const { email, name, uid } = decodedToken;
+
+    // Check or create user in your MongoDB
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      user = new User({ email, name, firebaseUID: uid });
+      await user.save();
+    }
+
+    // Optional: Create your own JWT for session handling
+    const myToken = jwt.sign({ id: user._id }, "your_jwt_secret", { expiresIn: "7d" });
+
+    res.json({
+      message: "Login success",
+      token: myToken,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email
+      }
+    });
+  } catch (error) {
+    console.error("Firebase Auth Error:", error);
+    res.status(401).json({ message: "Invalid Firebase Token" });
+  }
+});
+
+module.exports = router;
