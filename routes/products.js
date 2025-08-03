@@ -94,17 +94,14 @@ router.put('/:id', upload.fields([
       return res.status(400).json({ message: 'Invalid sizes format' });
     }
 
-    // ✅ Handle moreImages safely
+     // --- Fix for moreImages ---
+    let moreImages = product.moreImages || [];
     if (req.files['moreImages']) {
-      if (Array.isArray(product.moreImages)) {
-        product.moreImages.forEach(filename => {
-          const filePath = path.join(__dirname, '../uploads', filename);
-          if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-        });
-      }
+      const newImages = req.files['moreImages'].map(file => file.filename);
+      moreImages = [...moreImages, ...newImages]; // Merge old + new
     }
 
-    const moreImages = req.files['moreImages']?.map(file => file.filename) || [];
+    
 
     // ✅ Handle video safely
     let video = product.video;
